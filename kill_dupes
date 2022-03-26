@@ -33,7 +33,7 @@ def map_track_duplication(tracks):
         except:
             discNumberNorm = 0
         if albumNorm not in album_track_duplicate_map:
-            album_track_duplicate_map.update({albumNorm: {}})
+            album_track_duplicate_map[albumNorm] = {}
         if titleNorm not in album_track_duplicate_map[albumNorm]:
             album_track_duplicate_map[albumNorm].update({titleNorm: {}})
         if trackNumberNorm not in album_track_duplicate_map[albumNorm][titleNorm]:
@@ -110,7 +110,7 @@ def query_yes_no(question, default="yes"):
     """
     valid = {"yes": True,   "y": True,  "ye": True,
              "no": False,     "n": False}
-    if default == None:
+    if default is None:
         prompt = " [y/n] "
     elif default == "yes":
         prompt = " [Y/n] "
@@ -121,11 +121,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        if sys.version_info[0] < 3:
-            choice = raw_input().lower()
-        else:
-            choice = input().lower()
-
+        choice = raw_input().lower() if sys.version_info[0] < 3 else input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -136,18 +132,13 @@ def query_yes_no(question, default="yes"):
 
 
 def get_track_ids(tracks):
-    track_ids = []
-    for track in tracks:
-        track_ids.append(track['id'])
-    return track_ids
+    return [track['id'] for track in tracks]
 
 
 api = Mobileclient()
 api.__init__(True, True, True)
 oauth_credentials = api.perform_oauth(username, password)
-logged_in = api.oauth_login(api.FROM_MAC_ADDRESS, oauth_credentials)
-
-if logged_in:
+if logged_in := api.oauth_login(api.FROM_MAC_ADDRESS, oauth_credentials):
     print("Successfully logged in. Beginning duplicate detection process.")
     all_tracks = api.get_all_songs()
     album_track_duplicate_map = map_track_duplication(all_tracks)
@@ -156,12 +147,24 @@ if logged_in:
         all_tracks_by_album, album_track_duplicate_map)
     duplicate_track_ids = get_track_ids(duplicate_tracks)
     if len(duplicate_track_ids) > 0:
-        if query_yes_no("Found " + str(len(duplicate_track_ids)) + " duplicate tracks. Delete duplicates?", "no"):
+        if query_yes_no(
+            f"Found {len(duplicate_track_ids)}"
+            + " duplicate tracks. Delete duplicates?",
+            "no",
+        ):
             deleted_track_ids = []
             for track in duplicate_track_ids:
                 deleted_track_ids += api.delete_songs(track)
-            print("Successfully deleted " + str(len(deleted_track_ids)) + " of " +
-                  str(len(duplicate_track_ids)) + " queued songs for removal.")
+            print(
+                (
+                    (
+                        f"Successfully deleted {len(deleted_track_ids)} of "
+                        + str(len(duplicate_track_ids))
+                    )
+                    + " queued songs for removal."
+                )
+            )
+
     else:
         print("I didn't find any duplicate tracks.")
     print("Thank you!")

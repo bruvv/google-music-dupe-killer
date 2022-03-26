@@ -49,7 +49,7 @@ def query_yes_no(question, default="yes"):
     """
     valid = {"yes":True,   "y":True,  "ye":True,
              "no":False,     "n":False}
-    if default == None:
+    if default is None:
         prompt = " [y/n] "
     elif default == "yes":
         prompt = " [Y/n] "
@@ -60,10 +60,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        if sys.version_info[0] < 3:
-            choice = raw_input().lower()
-        else:
-            choice = input().lower()
+        choice = raw_input().lower() if sys.version_info[0] < 3 else input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -74,23 +71,24 @@ def query_yes_no(question, default="yes"):
 
 
 api = Mobileclient()
-logged_in = api.login(username, password, android_id)
-
-if logged_in:
+if logged_in := api.login(username, password, android_id):
     print("Successfully logged in. Beginning duplicate detection process.")
 
     all_playlists = api.get_all_user_playlist_contents()
 
     for playlist in all_playlists:
-        #if playlist['name'] == 'aaaDuplicateTest':
-        if 1==1:
-            duplicate_tracks = get_dupes_in_playlist(playlist)
-            if len(duplicate_tracks) > 0:
-                if query_yes_no("Found " + str(len(duplicate_tracks)) + " duplicate tracks in playlist " + playlist['name'] + ". Delete duplicates?", "yes"):
-                    deleted_track_ids = []
-                    deleted_track_ids += api.remove_entries_from_playlist(duplicate_tracks)
-                    print("Successfully deleted " + str(len(deleted_track_ids)) + " tracks of " + playlist['name'] )
-                else:
-                    print("Skipping " + playlist['name'])
+        duplicate_tracks = get_dupes_in_playlist(playlist)
+        if len(duplicate_tracks) > 0:
+            if query_yes_no(
+                f"Found {len(duplicate_tracks)} duplicate tracks in playlist "
+                + playlist['name']
+                + ". Delete duplicates?",
+                "yes",
+            ):
+                deleted_track_ids = []
+                deleted_track_ids += api.remove_entries_from_playlist(duplicate_tracks)
+                print("Successfully deleted " + str(len(deleted_track_ids)) + " tracks of " + playlist['name'] )
+            else:
+                print("Skipping " + playlist['name'])
 
     print("Thank you!")
